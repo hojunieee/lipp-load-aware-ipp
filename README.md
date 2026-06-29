@@ -51,8 +51,8 @@ Each run writes `exp{id}_results.json` (full record) and `exp{id}_data.npz`
 | `R_0`        | base robot mass                          | all              |
 | `unit_mass`  | mass per unit sample (lambda)            | all              |
 | `B`          | energy budget                            | LIPP             |
-| `S_max`      | max samples per vertex                   | LIPP             |
 | `dist_lim`   | distance budget                          | C-IPP, Greedy    |
+| `S_max`      | max samples per vertex                   | LIPP             |
 | `S`          | fixed samples per visited vertex         | C-IPP, Greedy    |
 
 Setting `unit_mass` (lambda) -> 0 makes LIPP recover C-IPP, as discussed in the
