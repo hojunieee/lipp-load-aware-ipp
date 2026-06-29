@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Experiment outputs (default out_dir is data/)
+data/
+*.npz
+
+# Gurobi
+*.log
+gurobi.lic
+
+# OS / editor cruft
+.DS_Store
+.idea/
+.vscode/

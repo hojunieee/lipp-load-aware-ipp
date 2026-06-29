@@ -1,0 +1,10 @@
+# Core dependencies for the LIPP experiment package.
+# Tested with: numpy 2.4.4, networkx 3.6.1, gurobipy 13.0.2
+#
+# NOTE: gurobipy requires a Gurobi license large enough for your problem size.
+# The free size-limited license cannot solve the default n_vertices=10 instance;
+# academic users can request a free full license from https://www.gurobi.com/academia/
+
+numpy
+networkx
+gurobipy
