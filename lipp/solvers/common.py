@@ -1,5 +1,9 @@
 """Shared building blocks for the Gurobi-based planners (LIPP and C-IPP)."""
 import gurobipy as gp
+_env = gp.Env(empty=True)
+_env.setParam("OutputFlag", 0)
+_env.start()
+
 from gurobipy import GRB
 
 from ..metrics import (compute_travel_cost, compute_posterior_variance,
