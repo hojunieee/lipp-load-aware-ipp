@@ -19,7 +19,7 @@ def run_cipp(problem, config):
     edges, edge_cost = problem.edges, problem.edge_cost
     K_VV, K_TV, K_TT = problem.K_VV, problem.K_TV, problem.K_TT
     n, n_t = problem.n_vertices, problem.n_test
-    start, target = problem.start, problem.target
+    start, goal = problem.start, problem.goal
 
     R_0, lam, S = config.R_0, config.unit_mass, config.S
     M = np.eye(n_t)
@@ -33,13 +33,13 @@ def run_cipp(problem, config):
     mdl.Params.Presolve = 2
     mdl.Params.LazyConstraints = 1
 
-    x = add_flow_constraints(mdl, edges, n, start, target, name="x")
+    x = add_flow_constraints(mdl, edges, n, start, goal, name="x")
     y = mdl.addVars(n, vtype=GRB.BINARY, name="y")
     K = mdl.addVars(n_t, n, lb=-GRB.INFINITY, name="K")     # estimator (no noise model)
 
     # Vertex activation from incoming flow.
     for v in range(n):
-        if v in (start, target):
+        if v in (start, goal):
             mdl.addConstr(y[v] == 1)
         else:
             mdl.addConstr(y[v] == gp.quicksum(x[i, j] for (i, j) in edges if j == v))
@@ -75,7 +75,7 @@ def run_cipp(problem, config):
     mdl.setObjective(obj, GRB.MINIMIZE)
 
     def subtour_callback(model, where):
-        """Lazily forbid strongly-connected components that exclude start/target."""
+        """Lazily forbid strongly-connected components that exclude start/goal."""
         if where != GRB.Callback.MIPSOL:
             return
         try:
@@ -84,7 +84,7 @@ def run_cipp(problem, config):
             g.add_nodes_from(range(n))
             g.add_edges_from(e for e in edges if vals[e] > 0.5)
             for comp in nx.strongly_connected_components(g):
-                if len(comp) >= 2 and start not in comp and target not in comp:
+                if len(comp) >= 2 and start not in comp and goal not in comp:
                     model.cbLazy(gp.quicksum(x[i, j] for (i, j) in edges
                                              if i in comp and j in comp)
                                  <= len(comp) - 1)
@@ -101,7 +101,7 @@ def run_cipp(problem, config):
                                solve_time=solve_time)
 
     sel_edges = [e for e in edges if x[e].X > 0.5]
-    path = extract_path_from_edges(sel_edges, start, target, n)
+    path = extract_path_from_edges(sel_edges, start, goal, n)
 
     # Post-hoc uniform sampling: S samples at every visited vertex.
     samples = np.array([S if y[v].X > 0.5 else 0 for v in range(n)], dtype=int)

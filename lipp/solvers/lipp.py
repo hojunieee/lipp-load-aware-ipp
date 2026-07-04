@@ -3,7 +3,7 @@
 Jointly optimises routing (chi), visitation order (o), and per-vertex sample
 count (z / l) under a load-dependent energy budget. The GP posterior variance is
 reformulated via the linear estimator A (LLSE), and the bilinear R_u * chi_uv
-energy term is linearised exactly with McCormick auxiliaries Tuv.
+energy term is linearised exactly with McCormick auxiliaries wuv.
 """
 import time
 import numpy as np
@@ -20,7 +20,7 @@ def run_lipp(problem, config):
     edges, edge_cost = problem.edges, problem.edge_cost
     K_VV, K_TV, K_TT = problem.K_VV, problem.K_TV, problem.K_TT
     n, n_t = problem.n_vertices, problem.n_test
-    start, target = problem.start, problem.target
+    start, goal = problem.start, problem.goal
 
     R_0, lam = config.R_0, config.unit_mass
     B, S_max = config.B, config.S_max
@@ -45,7 +45,7 @@ def run_lipp(problem, config):
     mdl.Params.MIPFocus = 2
 
     # ----- Decision variables -----
-    chi = add_flow_constraints(mdl, edges, n, start, target, name="chi")
+    chi = add_flow_constraints(mdl, edges, n, start, goal, name="chi")
     y = mdl.addVars(n, vtype=GRB.BINARY, name="y")                       # vertex visit
     z = mdl.addVars(n, range(1, S_max + 1), vtype=GRB.BINARY, name="z")  # sample level
     Aac = mdl.addVars(n_t, n, range(1, S_max + 1),
@@ -54,14 +54,14 @@ def run_lipp(problem, config):
     R = mdl.addVars(n, lb=R_0, ub=R_max, name="R")                       # robot mass
     L = mdl.addVars(n, lb=0.0, ub=L_max, name="L")                       # carried load
     l_var = mdl.addVars(n, vtype=GRB.INTEGER, lb=0, ub=S_max, name="l")  # sample count
-    Tuv = mdl.addVars(edges, lb=0.0, name="Tuv")                         # McCormick aux
+    wuv = mdl.addVars(edges, lb=0.0, name="wuv")                         # McCormick aux
 
     # ----- Estimator <-> sampling links (A aggregation + big-M activation) -----
     for t in range(n_t):
         for v in range(n):
             mdl.addConstr(A[t, v] == gp.quicksum(Aac[t, v, c]
                                                  for c in range(1, S_max + 1)))
-            if v not in (start, target):                 # A active only if v visited
+            if v not in (start, goal):                 # A active only if v visited
                 mdl.addConstr(A[t, v] <= A_max * y[v])
                 mdl.addConstr(A[t, v] >= -A_max * y[v])
             for c in range(1, S_max + 1):                # A_{t,v,c} = 0 unless z = 1
@@ -76,7 +76,7 @@ def run_lipp(problem, config):
 
     # ----- Vertex activation from incoming flow -----
     for v in range(n):
-        if v in (start, target):
+        if v in (start, goal):
             mdl.addConstr(y[v] == 1)
         else:
             mdl.addConstr(y[v] == gp.quicksum(chi[i, j] for (i, j) in edges if j == v))
@@ -85,7 +85,7 @@ def run_lipp(problem, config):
     o = mdl.addVars(n, vtype=GRB.INTEGER, lb=0, ub=n - 1, name="o")
     mdl.addConstr(o[start] == 0)
     for u, v in edges:
-        if v != start and u != target:
+        if v != start and u != goal:
             mdl.addConstr(o[v] >= o[u] + 1 - n * (1 - chi[u, v]))
 
     # ----- Load propagation and robot mass (R_v = R_0 + L_v) -----
@@ -98,14 +98,14 @@ def run_lipp(problem, config):
     for v in range(n):
         mdl.addConstr(R[v] == R_0 + L[v])
 
-    # ----- Exact McCormick linearisation of R_u * chi_uv  ->  Tuv -----
+    # ----- Exact McCormick linearisation of R_u * chi_uv  ->  wuv -----
     for u, v in edges:
-        mdl.addConstr(Tuv[u, v] <= R[u])
-        mdl.addConstr(Tuv[u, v] <= R_max * chi[u, v])
-        mdl.addConstr(Tuv[u, v] >= R[u] - R_max * (1 - chi[u, v]))
+        mdl.addConstr(wuv[u, v] <= R[u])
+        mdl.addConstr(wuv[u, v] <= R_max * chi[u, v])
+        mdl.addConstr(wuv[u, v] >= R[u] - R_max * (1 - chi[u, v]))
 
     # ----- Energy budget -----
-    mdl.addConstr(gp.quicksum(edge_cost[u, v] * Tuv[u, v] for (u, v) in edges) <= B)
+    mdl.addConstr(gp.quicksum(edge_cost[u, v] * wuv[u, v] for (u, v) in edges) <= B)
 
     # Optional path-length budget (Sec. V-A): cap execution time directly by
     # supplying geometric distances euclid[(u, v)] = ||V_u - V_v|| and adding
@@ -147,11 +147,11 @@ def run_lipp(problem, config):
                                solve_time=solve_time)
 
     sel_edges = [(i, j) for (i, j) in edges if chi[i, j].X > 0.5]
-    path = extract_path_from_edges(sel_edges, start, target, n)
+    path = extract_path_from_edges(sel_edges, start, goal, n)
     samples = np.array([int(round(l_var[v].X)) for v in range(n)])
     A_est = np.array([[sum(Aac[t, v, c].X for c in range(1, S_max + 1))
                        for v in range(n)] for t in range(n_t)])
-    energy = float(sum(edge_cost[u, v] * Tuv[u, v].X for (u, v) in edges))  # from model
+    energy = float(sum(edge_cost[u, v] * wuv[u, v].X for (u, v) in edges))  # from model
 
     return assemble_result("LIPP", int(mdl.status), path, samples, A_est,
                            problem=problem, M=M, energy=energy,

@@ -10,10 +10,10 @@ from ..metrics import (compute_travel_cost, compute_posterior_variance,
                        compute_rmse)
 
 
-def add_flow_constraints(model, edges, n_vertices, start, target, name):
+def add_flow_constraints(model, edges, n_vertices, start, goal, name):
     """Add binary edge variables + single-path flow conservation.
 
-    Enforces one outgoing edge at `start`, one incoming at `target`, no
+    Enforces one outgoing edge at `start`, one incoming at `goal`, no
     back-flow at either end, and conservation (in == out <= 1) elsewhere.
     Returns the edge-variable dict.
     """
@@ -24,7 +24,7 @@ def add_flow_constraints(model, edges, n_vertices, start, target, name):
         if v == start:
             model.addConstr(outflow == 1)
             model.addConstr(inflow == 0)
-        elif v == target:
+        elif v == goal:
             model.addConstr(inflow == 1)
             model.addConstr(outflow == 0)
         else:

@@ -72,5 +72,5 @@ class Problem:
         return 0
 
     @property
-    def target(self):
+    def goal(self):
         return self.n_vertices - 1

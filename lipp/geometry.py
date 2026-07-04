@@ -41,20 +41,20 @@ def rbf_kernel(X1, X2, lengthscale=0.2):
     return np.exp(-0.5 * (sq1 + sq2 - 2 * X1 @ X2.T) / lengthscale ** 2)
 
 
-def make_edges(n_vertices, start, target, rng, density=0.5):
+def make_edges(n_vertices, start, goal, rng, density=0.5):
     """Build the directed edge list.
 
-    Start and target are fully connected to/from every other vertex; the
+    Start and goal are fully connected to/from every other vertex; the
     remaining undirected pairs are kept with probability ~`density` and made
     bidirectional. Order-preserving de-duplication gives the final list.
     """
     critical = [(i, j)
                 for i in range(n_vertices) for j in range(n_vertices)
-                if i != j and ({i, j} & {start, target})]
+                if i != j and ({i, j} & {start, goal})]
 
     other_pairs = [(i, j)
                    for i in range(n_vertices) for j in range(i + 1, n_vertices)
-                   if not ({i, j} & {start, target})]
+                   if not ({i, j} & {start, goal})]
     rng.shuffle(other_pairs)
     keep = int(round(density * len(other_pairs)))
 

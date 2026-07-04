@@ -18,12 +18,12 @@ def build_problem(config):
     """Sample one shared graph + GP setup from the config's seed."""
     rng = np.random.RandomState(config.seed)
     n, m = config.n_vertices, config.n_test
-    start, target = 0, n - 1
+    start, goal = 0, n - 1
 
     V = random_points_in_circle(n, rng=rng)
     T = random_points_in_circle(m, rng=rng)
     Vz = elevation(V)
-    edges = make_edges(n, start, target, rng, density=config.density)
+    edges = make_edges(n, start, goal, rng, density=config.density)
     edge_cost = build_edge_dicts(V, Vz, edges)
 
     return Problem(V=V, T=T, edges=edges, edge_cost=edge_cost,
@@ -52,7 +52,7 @@ def run_experiment(config):
         "unit_mass": config.unit_mass, "B": config.B, "S_max": config.S_max,
         "dist_lim": config.dist_lim, "S": config.S,
         "V": problem.V.tolist(), "T": problem.T.tolist(),
-        "start": problem.start, "target": problem.target,
+        "start": problem.start, "goal": problem.goal,
         "edges": [list(e) for e in problem.edges],
         "prior_var": prior_var,
         "LIPP": lipp, "CIPP": cipp, "Greedy": greedy,

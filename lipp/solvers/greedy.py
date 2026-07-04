@@ -2,7 +2,7 @@
 
 At each step add the unvisited vertex with the best posterior-variance reduction
 per unit travel distance, as long as the detour still leaves enough budget to
-reach the target. Fixed S samples are taken at every chosen vertex.
+reach the goal. Fixed S samples are taken at every chosen vertex.
 """
 import numpy as np
 import networkx as nx
@@ -16,7 +16,7 @@ def run_greedy(problem, config):
     edges, edge_cost = problem.edges, problem.edge_cost
     K_VV, K_TV, K_TT = problem.K_VV, problem.K_TV, problem.K_TT
     n = problem.n_vertices
-    start, target = problem.start, problem.target
+    start, goal = problem.start, problem.goal
 
     R_0, lam, S = config.R_0, config.unit_mass, config.S
     M = np.eye(problem.n_test)
@@ -47,12 +47,12 @@ def run_greedy(problem, config):
             try:
                 route = paths[current][v]
                 d_to_v = lengths[current][v]
-                d_v_to_t = lengths[v][target]
+                d_v_to_t = lengths[v][goal]
             except KeyError:
                 continue
             if any(node in visited for node in route[1:]):
                 continue
-            if d_to_v + d_v_to_t > remaining + 1e-9:        # must still reach target
+            if d_to_v + d_v_to_t > remaining + 1e-9:        # must still reach goal
                 continue
 
             trial = samples.copy()
@@ -80,17 +80,17 @@ def run_greedy(problem, config):
         samples[best_v] = S
         post_var_cur = best_pv
 
-    # Return to target if the greedy walk ended elsewhere and budget allows.
-    if current != target:
+    # Return to goal if the greedy walk ended elsewhere and budget allows.
+    if current != goal:
         try:
-            route = paths[current][target]
+            route = paths[current][goal]
             cost = sum(edge_cost[(u, w)] for u, w in zip(route, route[1:]))
             if cost <= remaining + 1e-9:
                 for u, w in zip(route, route[1:]):
                     selected_edges.append((u, w))
                     path_nodes.append(w)
                     remaining -= edge_cost[(u, w)]
-                current = target
+                current = goal
         except KeyError:
             pass
 

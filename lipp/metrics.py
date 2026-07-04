@@ -10,11 +10,11 @@ from .geometry import th_level
 UNVISITED_NOISE = 1e6  # effective noise variance for vertices with no samples
 
 
-def extract_path_from_edges(selected_edges, start, target, n_vertices):
-    """Walk start -> target following the selected directed edges."""
+def extract_path_from_edges(selected_edges, start, goal, n_vertices):
+    """Walk start -> goal following the selected directed edges."""
     path, cur = [start], start
     for _ in range(n_vertices + 5):       # guard against malformed edge sets
-        if cur == target:
+        if cur == goal:
             break
         nxt = next((v for u, v in selected_edges if u == cur), None)
         if nxt is None:
