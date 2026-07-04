@@ -40,7 +40,7 @@ from lipp import ExperimentConfig, build_problem, run_lipp, run_cipp  # noqa: E4
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--n-graphs", type=int, default=10)
+    p.add_argument("--n-graphs", type=int, default=1000)
     p.add_argument("--n-vertices", type=int, default=10)
     p.add_argument("--n-test", type=int, default=5)
     p.add_argument("--r0", type=float, default=1.0)
@@ -134,6 +134,10 @@ def make_plot(summary, lambdas, out_base):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+
+    # Avoid Type 3 fonts (required by IEEE / many conferences)
+    matplotlib.rcParams["pdf.fonttype"] = 42
+    matplotlib.rcParams["ps.fonttype"] = 42
 
     lipp = [s for s in summary if s["method"] == "LIPP"]
     cipp = next((s for s in summary if s["method"] == "CIPP"), None)
