@@ -29,7 +29,7 @@ def run_cipp(problem, config):
     mdl.Params.LogToConsole = 0
     mdl.Params.TimeLimit = config.time_limit
     mdl.Params.MIPGap = 0.02
-    mdl.Params.Threads = 6
+    mdl.Params.Threads = 0
     mdl.Params.Presolve = 2
     mdl.Params.LazyConstraints = 1
 

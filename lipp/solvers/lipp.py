@@ -26,7 +26,7 @@ def run_lipp(problem, config):
     B, S_max = config.B, config.S_max
     M = np.eye(n_t)
 
-    L_max = n * S_max * lam            # safe upper bound on cumulative load
+    L_max = (n-1) * S_max * lam            # safe upper bound on cumulative load
     R_max = R_0 + L_max
 
     # Data-driven big-M for the estimator coefficients (tighter than a guess).
@@ -38,7 +38,7 @@ def run_lipp(problem, config):
 
     mdl = gp.Model("LIPP")
     mdl.Params.LogToConsole = 0
-    mdl.Params.Threads = 6
+    mdl.Params.Threads = 0
     mdl.Params.TimeLimit = config.time_limit
     mdl.Params.MIPGap = 0.02
     mdl.Params.Presolve = 2
@@ -85,7 +85,8 @@ def run_lipp(problem, config):
     o = mdl.addVars(n, vtype=GRB.INTEGER, lb=0, ub=n - 1, name="o")
     mdl.addConstr(o[start] == 0)
     for u, v in edges:
-        mdl.addConstr(o[v] >= o[u] + 1 - n * (1 - chi[u, v]))
+        if v != start and u != target:
+            mdl.addConstr(o[v] >= o[u] + 1 - n * (1 - chi[u, v]))
 
     # ----- Load propagation and robot mass (R_v = R_0 + L_v) -----
     mdl.addConstr(L[start] == lam * gp.quicksum(c * z[start, c]
