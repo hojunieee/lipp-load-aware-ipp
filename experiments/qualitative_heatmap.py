@@ -5,12 +5,6 @@ Reproduces the paper's heatmap comparison (Fig. 2) using HAND-CODED node and
 test coordinates read off the original figure, rather than searching for a seed.
 Edit NODES / TESTS below to nudge the layout; everything downstream adapts.
 
-The background heatmap is the ground-truth field `th_level` from the package, so
-it matches the field the planners are estimating. Edge cost is plain Euclidean
-distance here (so "Dis" on each panel equals geometric path length); switch to
-the elevation-adjusted cost via lipp.geometry.build_edge_dicts if you want parity
-with the main experiments.
-
 Run from the repository root (the folder that contains `lipp/`):
 
     python experiments/qualitative_heatmap.py
@@ -61,9 +55,14 @@ TESTS = [
 # Budgets / physics. C-IPP and Greedy route under the distance budget; LIPP's
 # energy budget is then set to BUDGET_FRACTION of the energy C-IPP actually spent
 # (the same scheme as the paper's distance/energy figure).
-CONFIG = dict(R_0=1.0, unit_mass=1.0, S_max=3, S=3, dist_lim=1.5, time_limit=100)
+CONFIG = dict(R_0=1.0, unit_mass=1.0, S_max=3, S=3, dist_lim=1.75, time_limit=100)
 BUDGET_FRACTION = 0.5     # B_LIPP = fraction * (energy C-IPP consumes)
 OUT_DIR = "data/qualitative"
+
+# Marker sizing (matplotlib scatter area in points^2).
+NODE_SIZE = 160           # node circle size; lower = smaller circles
+NODE_FONT = 8             # letter inside each node
+TEST_SIZE = 70            # red test-location squares
 
 
 def build_handcoded_problem():
@@ -129,7 +128,7 @@ def solve(problem):
 def _field_grid(res=300):
     g = np.linspace(0, 1, res)
     xx, yy = np.meshgrid(g, g)
-    z = th_level(np.column_stack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
+    z = elevation(np.column_stack([xx.ravel(), yy.ravel()])).reshape(xx.shape)
     return z
 
 
@@ -141,7 +140,7 @@ def plot_panel(ax, problem, result, labels, title, field):
                    cmap="viridis", aspect="equal", zorder=0)
 
     # Test locations.
-    ax.scatter(problem.T[:, 0], problem.T[:, 1], marker="s", s=70,
+    ax.scatter(problem.T[:, 0], problem.T[:, 1], marker="s", s=TEST_SIZE,
                c="red", edgecolors="black", linewidths=1.0, zorder=3)
 
     # Path arrows (skip gracefully if a method returned no path).
@@ -150,7 +149,7 @@ def plot_panel(ax, problem, result, labels, title, field):
         for u, v in zip(path, path[1:]):
             ax.add_patch(FancyArrowPatch(
                 V[u], V[v], arrowstyle="-|>", mutation_scale=16,
-                color="white", lw=2.5, shrinkA=9, shrinkB=9, zorder=4))
+                color="white", lw=2.5, shrinkA=7, shrinkB=7, zorder=4))
 
     # Nodes.
     for idx, (x, y) in enumerate(V):
@@ -160,13 +159,14 @@ def plot_panel(ax, problem, result, labels, title, field):
             fc, tc = "navy", "white"
         else:
             fc, tc = "white", "black"
-        ax.scatter(x, y, s=300, c=fc, edgecolors="black", linewidths=1.2, zorder=5)
-        ax.text(x, y, labels[idx], ha="center", va="center", fontsize=9,
+        ax.scatter(x, y, s=NODE_SIZE, c=fc, edgecolors="black",
+                   linewidths=1.2, zorder=5)
+        ax.text(x, y, labels[idx], ha="center", va="center", fontsize=NODE_FONT,
                 fontweight="bold", color=tc, zorder=6)
 
-    ax.text(*(V[start] - [0, 0.055]), "Start", color="deepskyblue",
+    ax.text(*(V[start] - [0, 0.05]), "Start", color="deepskyblue",
             fontsize=8, fontweight="bold", ha="center", va="top", zorder=6)
-    ax.text(*(V[target] - [0, 0.055]), "Target", color="navy",
+    ax.text(*(V[target] - [0, 0.05]), "Target", color="navy",
             fontsize=8, fontweight="bold", ha="center", va="top", zorder=6)
 
     # Sample-count boxes at visited vertices.
@@ -174,9 +174,9 @@ def plot_panel(ax, problem, result, labels, title, field):
     if samples is not None:
         for idx, (x, y) in enumerate(V):
             if samples[idx] > 0:
-                ax.text(x + 0.025, y + 0.055, str(int(samples[idx])), fontsize=9,
+                ax.text(x + 0.022, y + 0.045, str(int(samples[idx])), fontsize=8,
                         ha="center", va="center", zorder=7,
-                        bbox=dict(boxstyle="round,pad=0.22", fc="white",
+                        bbox=dict(boxstyle="round,pad=0.2", fc="white",
                                   ec="black", lw=1.0))
 
     def fmt(key):
@@ -201,7 +201,7 @@ def make_figure(problem, results, labels, out_base, b_lipp):
 
     # Shared colorbar.
     cbar = fig.colorbar(im, ax=axes, fraction=0.025, pad=0.02)
-    cbar.set_label("Ground Truth TH level")
+    cbar.set_label("Elevation")
 
     # Budget box, top-right.
     b_txt = f"{b_lipp:.2f}" if b_lipp is not None else "--"

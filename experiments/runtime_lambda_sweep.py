@@ -40,7 +40,7 @@ from lipp import ExperimentConfig, build_problem, run_lipp, run_cipp  # noqa: E4
 def parse_args():
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--n-graphs", type=int, default=1000)
+    p.add_argument("--n-graphs", type=int, default=500)
     p.add_argument("--n-vertices", type=int, default=10)
     p.add_argument("--n-test", type=int, default=5)
     p.add_argument("--r0", type=float, default=1.0)
@@ -130,7 +130,7 @@ def summarize(records, lambdas):
     return rows
 
 
-def make_plot(summary, lambdas, out_base):
+def make_plot(summary, lambdas, s_max, out_base):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -151,18 +151,21 @@ def make_plot(summary, lambdas, out_base):
     p75 = [s["p75"] for s in lipp]
 
     fig, ax = plt.subplots(figsize=(5.2, 3.8))
-    ax.fill_between(xs, p25, p75, alpha=0.2, color="C0", label="LIPP IQR")
-    ax.plot(xs, med, "o-", color="C0", lw=2, label="LIPP (median)")
+    ax.fill_between(xs, p25, p75, alpha=0.2, color="#f0b753", label="LIPP IQR")
+    ax.plot(xs, med, "o-", color="#f0b753", lw=2, label="LIPP (median)")
 
     if cipp is not None:
-        ax.axhline(cipp["median"], ls="--", color="C3", lw=1.6,
+        ax.axhline(cipp["median"], ls="--", color="#5dae6b", lw=1.6,
                    label="C-IPP (median, $\\lambda$-independent)")
-        ax.fill_between(lambdas, cipp["p25"], cipp["p75"], alpha=0.12, color="C3")
+        ax.fill_between(lambdas, cipp["p25"], cipp["p75"], alpha=0.12, color="#5dae6b")
+        # Reference: S_max^2 x C-IPP (nominal variable-count growth factor).
+        ax.axhline(s_max ** 2 * cipp["median"], ls="--", color="gray", lw=1.3,
+                   alpha=0.8, label=f"${s_max}^2$ $\\times$ C-IPP")
 
     ax.set_xscale("log")
     ax.set_xlabel("Unit sample mass  $\\lambda$")
     ax.set_ylabel("Solve time to gap (s)")
-    ax.set_title("Runtime vs. sample mass (graph size fixed)")
+    ax.set_title("Runtime vs. sample mass (graph size = 20)")
     ax.grid(True, which="both", ls=":", alpha=0.5)
     ax.legend(frameon=False, fontsize=8)
     fig.tight_layout()
@@ -200,7 +203,8 @@ def main():
         print(f"{s['method']:<8}{lam:>8}{s['n']:>5}{s['median']:>9.2f}"
               f"{s['mean']:>9.2f}{s['p25']:>8.2f}{s['p75']:>8.2f}{s['n_timelimit']:>5}")
 
-    make_plot(summary, lambdas, os.path.join(args.out_dir, "runtime_vs_lambda"))
+    make_plot(summary, lambdas, args.s_max,
+              os.path.join(args.out_dir, "runtime_vs_lambda"))
 
 
 if __name__ == "__main__":

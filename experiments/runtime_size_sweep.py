@@ -51,7 +51,7 @@ def parse_args():
     p.add_argument("--s", type=int, default=2)
     p.add_argument("--dist-lim", type=float, default=2.0)
     p.add_argument("--budget", type=float, default=2.0, help="LIPP energy budget B")
-    p.add_argument("--time-limit", type=int, default=100)
+    p.add_argument("--time-limit", type=int, default=30)
     p.add_argument("--seed-base", type=int, default=0)
     p.add_argument("--out-dir", type=str, default="data/runtime_size_sweep")
     return p.parse_args()
@@ -129,11 +129,11 @@ def make_plot(summary, sizes, s_max, out_base):
                 [clamp(r["p25"]) for r in s], [clamp(r["p75"]) for r in s])
 
     fig, ax = plt.subplots(figsize=(5.4, 3.9))
-    for method, color in (("CIPP", "C3"), ("LIPP", "C0")):
+    for method, color in (("CIPP", "#5dae6b"), ("LIPP", "#f0b753")):
         x, med, p25, p75 = series(method)
         if not x:
             continue
-        ax.fill_between(x, p25, p75, alpha=0.18, color=color)
+        ax.fill_between(x, p25, p75, alpha=0.20, color=color)
         ax.plot(x, med, "o-", color=color, lw=2, label=method)
 
     # Reference: S_max^2 x C-IPP (the nominal variable-count growth factor).
@@ -145,11 +145,11 @@ def make_plot(summary, sizes, s_max, out_base):
         ax.plot(xs, ref, "k--", lw=1.3, alpha=0.7,
                 label=f"${s_max}^2$ $\\times$ C-IPP")
 
-    ax.set_yscale("log")
+    # ax.set_yscale("log")
     ax.set_xticks(sizes)
     ax.set_xlabel("Number of sampling vertices  $n$")
     ax.set_ylabel("Solve time to gap (s)")
-    ax.set_title("Runtime vs. graph size ($\\lambda \\to 0$)")
+    ax.set_title(r"Runtime vs. graph size ($\lambda = 0.1\%$ of $R_0$)")
     ax.grid(True, which="both", ls=":", alpha=0.5)
     ax.legend(frameon=False, fontsize=8)
     fig.tight_layout()
